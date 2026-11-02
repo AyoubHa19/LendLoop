@@ -34,7 +34,10 @@ services:
       LENDLOOP_ADMIN_EMAIL: ${LENDLOOP_ADMIN_EMAIL:-admin@lendloop.local}
     volumes:
       - n8n_data:/home/node/.n8n
+      # Exported workflows and the (secret-free) Mailpit credential, for
+      # `n8n import:workflow` / `n8n import:credentials` — see the README.
       - ./workflows:/workflows:ro
+      - ./credentials:/credentials:ro
 
   mailpit:
     image: axllent/mailpit:v1.33.0

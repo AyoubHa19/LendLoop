@@ -1,0 +1,135 @@
+{
+  "id": "LLerrorHandler01",
+  "name": "LendLoop – Error handler",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true
+  },
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "43a0d533-3c76-4c1a-8bed-d0f79b1aedb8",
+      "name": "When a workflow fails",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "02d477c1-075d-430b-9a48-7b0437e157e4",
+      "name": "Describe error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const { execution = {}, workflow = {} } = $input.first().json;\nconst node = execution.lastNodeExecuted ?? 'a trigger';\nconst message = `${workflow.name ?? 'A workflow'} failed at \"${node}\": ${execution.error?.message ?? 'unknown error'}`.slice(0, 480);\nconst body = JSON.stringify({\n  idempotencyKey: `error:${execution.id ?? Date.now()}`,\n  kind: 'workflow_error',\n  message,\n});\nconst crypto = require('crypto');\nconst timestamp = Math.floor(Date.now() / 1000).toString();\nconst signature = 'sha256=' + crypto\n  .createHmac('sha256', $env.LENDLOOP_HMAC_SECRET)\n  .update(`${timestamp}.${body}`)\n  .digest('hex');\nreturn [{\n  json: {\n    body, timestamp, signature,\n    to: $env.LENDLOOP_ADMIN_EMAIL,\n    subject: `[LendLoop] Automation failed: ${workflow.name ?? 'workflow'}`,\n    text: `${message}\\n\\nExecution: ${execution.url ?? 'n/a'}`,\n  },\n}];"
+      }
+    },
+    {
+      "id": "4cbbf9eb-7486-4f6a-8c29-df5008520cac",
+      "name": "Email admin",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        680,
+        200
+      ],
+      "parameters": {
+        "fromEmail": "LendLoop <noreply@lendloop.local>",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "smtp": {
+          "id": "LLmailpitSmtp01",
+          "name": "Mailpit (local SMTP)"
+        }
+      }
+    },
+    {
+      "id": "b7997a66-7e05-4fa0-b2b7-bf011be90f1e",
+      "name": "Record in Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        680,
+        400
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LENDLOOP_CONVEX_SITE_URL }}/n8n/activity",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "When a workflow fails": {
+      "main": [
+        [
+          {
+            "node": "Describe error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Describe error": {
+      "main": [
+        [
+          {
+            "node": "Email admin",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Record in Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

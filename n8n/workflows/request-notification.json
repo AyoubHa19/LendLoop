@@ -1,0 +1,295 @@
+{
+  "id": "LLrequestNotify1",
+  "name": "LendLoop – Request notification",
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "errorWorkflow": "LLerrorHandler01"
+  },
+  "pinData": {},
+  "nodes": [
+    {
+      "id": "6fd734bd-c9ba-448a-a57e-e0de583dc89c",
+      "name": "Convex webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        220,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "lendloop-request",
+        "responseMode": "responseNode",
+        "options": {
+          "rawBody": true
+        }
+      },
+      "webhookId": "4f1c0a52-6a7e-4d0b-9b8e-1e6a2c9d3f10"
+    },
+    {
+      "id": "051851e2-f611-49cc-abf2-d1f174df2d9c",
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Checks the HMAC Convex put on this request (see convex/lib/hmac.ts).\n// The secret comes from the container environment, never from this workflow.\nconst crypto = require('crypto');\nconst { headers } = $input.first().json;\nconst timestamp = headers['x-lendloop-timestamp'] ?? '';\nconst signature = headers['x-lendloop-signature'] ?? '';\n// Verify the exact bytes Convex signed, not a re-serialised copy.\nconst raw = (await this.helpers.getBinaryDataBuffer(0, 'data')).toString('utf8');\n\nconst fresh = /^\\d+$/.test(timestamp) && Math.abs(Date.now() / 1000 - Number(timestamp)) <= 300;\nconst expected = 'sha256=' + crypto\n  .createHmac('sha256', $env.LENDLOOP_HMAC_SECRET)\n  .update(`${timestamp}.${raw}`)\n  .digest('hex');\nconst valid = fresh && signature.length === expected.length &&\n  crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));\n\nreturn [{ json: { valid, event: valid ? JSON.parse(raw) : null } }];"
+      }
+    },
+    {
+      "id": "4abb74ac-c77a-40a3-bcf6-58b978be433e",
+      "name": "Signature valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        660,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "01bf8aa6-5099-488d-8b8f-0f3a407851cb",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "995bf8e6-a94c-476a-8070-71916d1b327b",
+      "name": "Reject (401)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"error\": \"invalid signature\" }",
+        "options": {
+          "responseCode": 401
+        }
+      }
+    },
+    {
+      "id": "f9187db7-cbcd-4a3e-8d70-1336ab3dcaf1",
+      "name": "Accept (200)",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        200
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={ \"received\": true }",
+        "options": {}
+      }
+    },
+    {
+      "id": "d3295376-39bb-403d-80d3-57fb7153a456",
+      "name": "Compose email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// One short email per event. Only the fields Convex sent are used.\nconst e = $json.event;\nconst who = e.otherPartyName;\nconst dates = `${e.startDate} to ${e.endDate}`;\nconst templates = {\n  pending:   [`New request for your ${e.toolName}`, `${who} would like to borrow your ${e.toolName} from ${dates}. Open LendLoop to approve or decline it.`],\n  cancelled: [`Request cancelled: ${e.toolName}`, `${who} cancelled their request for your ${e.toolName} (${dates}).`],\n  approved:  [`Approved: ${e.toolName}`, `${who} approved your request for the ${e.toolName} (${dates}). Please return it by ${e.endDate}.`],\n  declined:  [`Declined: ${e.toolName}`, `${who} declined your request for the ${e.toolName} (${dates}).`],\n  returned:  [`Returned: ${e.toolName}`, `${who} marked the ${e.toolName} as returned. Thanks for borrowing responsibly!`],\n};\nconst [subject, body] = templates[e.status];\nreturn {\n  json: {\n    to: e.recipient.email,\n    subject,\n    text: `Hi ${e.recipient.name},\\n\\n${body}\\n\\n— LendLoop`,\n    eventId: e.eventId,\n    requestId: e.requestId,\n    recipientRole: e.recipient.role,\n  },\n};"
+      }
+    },
+    {
+      "id": "0deb4f0c-c442-4c78-bff4-f24a98385408",
+      "name": "Send email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1320,
+        200
+      ],
+      "parameters": {
+        "fromEmail": "LendLoop <noreply@lendloop.local>",
+        "toEmail": "={{ $json.to }}",
+        "subject": "={{ $json.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $json.text }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000,
+      "credentials": {
+        "smtp": {
+          "id": "LLmailpitSmtp01",
+          "name": "Mailpit (local SMTP)"
+        }
+      }
+    },
+    {
+      "id": "074ef8d2-9dba-45e2-a328-a868d5fbb1d1",
+      "name": "Sign write-back",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// Tell Convex the email went out. The key makes a retried call harmless.\nconst src = $('Compose email').item.json;\nconst body = JSON.stringify({\n  idempotencyKey: `notify:${src.eventId}`,\n  kind: 'notification_sent',\n  message: src.recipientRole === 'lender' ? 'Lender notified by email' : 'Borrower notified by email',\n  requestId: src.requestId,\n});\nconst crypto = require('crypto');\nconst timestamp = Math.floor(Date.now() / 1000).toString();\nconst signature = 'sha256=' + crypto\n  .createHmac('sha256', $env.LENDLOOP_HMAC_SECRET)\n  .update(`${timestamp}.${body}`)\n  .digest('hex');\nreturn { json: { body, timestamp, signature } };"
+      }
+    },
+    {
+      "id": "91ebce4d-4e11-4058-a3e5-6a444b671c85",
+      "name": "Record in Convex",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        200
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.LENDLOOP_CONVEX_SITE_URL }}/n8n/activity",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-LendLoop-Timestamp",
+              "value": "={{ $json.timestamp }}"
+            },
+            {
+              "name": "X-LendLoop-Signature",
+              "value": "={{ $json.signature }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.body }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 3000
+    }
+  ],
+  "connections": {
+    "Convex webhook": {
+      "main": [
+        [
+          {
+            "node": "Verify signature",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verify signature": {
+      "main": [
+        [
+          {
+            "node": "Signature valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Signature valid?": {
+      "main": [
+        [
+          {
+            "node": "Accept (200)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reject (401)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Accept (200)": {
+      "main": [
+        [
+          {
+            "node": "Compose email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Compose email": {
+      "main": [
+        [
+          {
+            "node": "Send email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send email": {
+      "main": [
+        [
+          {
+            "node": "Sign write-back",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sign write-back": {
+      "main": [
+        [
+          {
+            "node": "Record in Convex",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
