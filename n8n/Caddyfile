@@ -1,0 +1,10 @@
+# Only the LendLoop webhook is reachable through the public tunnel.
+# The n8n editor, API and every other webhook answer 404 from outside.
+:8080 {
+	handle /webhook/lendloop-request {
+		reverse_proxy n8n:5678
+	}
+	handle {
+		respond 404
+	}
+}
