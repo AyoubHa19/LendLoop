@@ -49,6 +49,33 @@ export const users = query({
   },
 });
 
+/**
+ * Automation failures, newest first, so a broken integration is visible
+ * instead of silently dropping emails.
+ */
+export const automationProblems = query({
+  args: {},
+  handler: async (ctx) => {
+    await requireAdmin(ctx);
+    const [failed, errors] = await Promise.all([
+      ctx.db
+        .query("automationEvents")
+        .withIndex("by_kind", (q) => q.eq("kind", "notification_failed"))
+        .order("desc")
+        .take(20),
+      ctx.db
+        .query("automationEvents")
+        .withIndex("by_kind", (q) => q.eq("kind", "workflow_error"))
+        .order("desc")
+        .take(20),
+    ]);
+    return [...failed, ...errors]
+      .sort((a, b) => b._creationTime - a._creationTime)
+      .slice(0, 20)
+      .map((e) => ({ _id: e._id, kind: e.kind, message: e.message, at: e._creationTime }));
+  },
+});
+
 export const setTrustedLender = mutation({
   args: { userId: v.id("users"), trusted: v.boolean() },
   handler: async (ctx, { userId, trusted }) => {

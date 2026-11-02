@@ -61,4 +61,23 @@ export default defineSchema({
     .index("by_toolId_and_status", ["toolId", "status"])
     // For the daily overdue check: approved loans whose end date has passed.
     .index("by_status_and_endDate", ["status", "endDate"]),
+
+  // What the automations did, shown on each loan ("reminder sent 2 days ago")
+  // and, for failures, on the admin page. _creationTime is when it happened.
+  automationEvents: defineTable({
+    requestId: v.optional(v.id("requests")),
+    kind: v.union(
+      v.literal("notification_sent"),
+      v.literal("reminder_sent"),
+      v.literal("notification_failed"),
+      v.literal("workflow_error"),
+    ),
+    message: v.string(),
+    // Unique per real-world event (e.g. "reminder:<loan>:<date>"), so a
+    // retried write-back records it once instead of twice.
+    idempotencyKey: v.string(),
+  })
+    .index("by_idempotencyKey", ["idempotencyKey"])
+    .index("by_requestId", ["requestId"])
+    .index("by_kind", ["kind"]),
 });

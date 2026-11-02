@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { formatDate } from "@/lib/dates";
+import { formatDate, timeAgo } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
 import { StatusBadge } from "./StatusBadge";
 import { Button, Card, Empty, ErrorText, Loading } from "./ui";
@@ -14,6 +14,7 @@ export type LoanRow = {
   startDate: string;
   endDate: string;
   status: string;
+  activity?: { kind: string; message: string; at: number }[];
 };
 
 /**
@@ -47,6 +48,11 @@ export function LoanList<T extends LoanRow>({
               <span className="text-sm text-zinc-600 dark:text-zinc-400">
                 {who(row)} · {formatDate(row.startDate)} – {formatDate(row.endDate)}
               </span>
+              {row.activity?.map((a) => (
+                <span key={`${a.kind}-${a.at}`} className="text-xs text-zinc-500">
+                  {a.message} · {timeAgo(a.at)}
+                </span>
+              ))}
             </div>
             {actions && <div className="flex gap-2">{actions(row)}</div>}
           </div>

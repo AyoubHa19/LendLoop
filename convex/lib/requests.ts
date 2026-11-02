@@ -1,10 +1,27 @@
-import type { Doc } from "../_generated/dataModel";
+import { internal } from "../_generated/api";
+import type { Doc, Id } from "../_generated/dataModel";
 import type { MutationCtx } from "../_generated/server";
 
 /**
+ * Queues the n8n notification for a request event. Scheduled from inside
+ * the mutation, so it runs only if the mutation's changes are saved.
+ */
+export async function notifyN8n(
+  ctx: MutationCtx,
+  requestId: Id<"requests">,
+  status: Doc<"requests">["status"],
+) {
+  await ctx.scheduler.runAfter(0, internal.automation.sendRequestEvent, {
+    requestId,
+    status,
+    attempt: 1,
+  });
+}
+
+/**
  * The single place where a request's status changes. Keeping every
- * transition here means the n8n notification (stage 4) is triggered from
- * one spot and can't be forgotten by a new code path.
+ * transition here means the n8n notification is triggered from one spot
+ * and can't be forgotten by a new code path.
  */
 export async function changeStatus(
   ctx: MutationCtx,
@@ -15,6 +32,7 @@ export async function changeStatus(
     status,
     ...(status === "returned" ? { returnedAt: Date.now() } : {}),
   });
+  await notifyN8n(ctx, request._id, status);
 }
 
 /** Two inclusive "YYYY-MM-DD" ranges overlap. String order = date order. */

@@ -17,3 +17,14 @@ export function formatDate(iso: string) {
 export function isOverdue(loan: { status: string; endDate: string }) {
   return loan.status === "approved" && loan.endDate < todayUtc();
 }
+
+/** 1793000000000 -> "2 days ago". */
+export function timeAgo(ms: number, now = Date.now()) {
+  const minutes = Math.round((now - ms) / 60_000);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} min ago`;
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.round(hours / 24);
+  return days === 1 ? "1 day ago" : `${days} days ago`;
+}

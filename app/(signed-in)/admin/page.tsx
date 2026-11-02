@@ -4,6 +4,7 @@ import { useMutation, useQuery } from "convex/react";
 import { ActionButton, LoanList } from "@/components/LoanList";
 import { Badge, Card, Empty, Loading, PageHeader } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { timeAgo } from "@/lib/dates";
 
 /**
  * Admin overview. Non-admins are refused by Convex itself (requireAdmin);
@@ -21,6 +22,7 @@ function AdminDashboard() {
   const loans = useQuery(api.admin.allLoans);
   const users = useQuery(api.admin.users);
   const setTrusted = useMutation(api.admin.setTrustedLender);
+  const problems = useQuery(api.admin.automationProblems);
 
   return (
     <>
@@ -47,6 +49,27 @@ function AdminDashboard() {
                     label={u.trustedLender ? "Remove Trusted Lender" : "Mark Trusted Lender"}
                     run={() => setTrusted({ userId: u._id, trusted: !u.trustedLender })}
                   />
+                </li>
+              ))}
+            </ul>
+          </Card>
+        )}
+      </section>
+
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Automation problems</h2>
+        {problems === undefined ? (
+          <Loading />
+        ) : problems.length === 0 ? (
+          <Empty>No failed notifications or workflow errors.</Empty>
+        ) : (
+          <Card>
+            <ul className="flex flex-col gap-2 text-sm">
+              {problems.map((p) => (
+                <li key={p._id} className="flex flex-wrap items-center gap-2">
+                  <Badge tone="red">{p.kind === "workflow_error" ? "Workflow error" : "Not delivered"}</Badge>
+                  <span>{p.message}</span>
+                  <span className="text-zinc-500">· {timeAgo(p.at)}</span>
                 </li>
               ))}
             </ul>

@@ -2,17 +2,26 @@ import { ConvexError, v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { getCurrentUser, requireUser } from "./lib/auth";
-import { changeStatus, isIsoDate, overlaps, todayUtc } from "./lib/requests";
+import { changeStatus, isIsoDate, notifyN8n, overlaps, todayUtc } from "./lib/requests";
 
 const MAX_LIST = 200;
 const MAX_LOAN_DAYS = 30;
 
-/** Request plus the names the UI shows. No emails, no other users' data. */
+/**
+ * Request plus what the UI shows: names, and recent automation activity
+ * ("reminder sent"). No emails, no other users' data, and no failure
+ * details (those are for admins only).
+ */
 async function describe(ctx: QueryCtx, r: Doc<"requests">) {
-  const [tool, lender, borrower] = await Promise.all([
+  const [tool, lender, borrower, events] = await Promise.all([
     ctx.db.get("tools", r.toolId),
     ctx.db.get("users", r.lenderId),
     ctx.db.get("users", r.borrowerId),
+    ctx.db
+      .query("automationEvents")
+      .withIndex("by_requestId", (q) => q.eq("requestId", r._id))
+      .order("desc")
+      .take(10),
   ]);
   return {
     _id: r._id,
@@ -25,6 +34,10 @@ async function describe(ctx: QueryCtx, r: Doc<"requests">) {
     endDate: r.endDate,
     status: r.status,
     returnedAt: r.returnedAt ?? null,
+    activity: events
+      .filter((e) => e.kind === "notification_sent" || e.kind === "reminder_sent")
+      .slice(0, 3)
+      .map((e) => ({ kind: e.kind, message: e.message, at: e._creationTime })),
   };
 }
 
@@ -73,7 +86,7 @@ export const create = mutation({
       throw new ConvexError("You already have a pending request for this tool.");
     }
 
-    return await ctx.db.insert("requests", {
+    const requestId = await ctx.db.insert("requests", {
       toolId,
       lenderId: tool.ownerId,
       borrowerId: me._id,
@@ -81,6 +94,8 @@ export const create = mutation({
       endDate,
       status: "pending",
     });
+    await notifyN8n(ctx, requestId, "pending");
+    return requestId;
   },
 });
 
