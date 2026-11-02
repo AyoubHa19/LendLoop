@@ -1,7 +1,8 @@
 "use client";
 
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useEffect } from "react";
 import { api } from "@/convex/_generated/api";
 
 export default function Home() {
@@ -37,12 +38,19 @@ export default function Home() {
 }
 
 function ConnectionStatus() {
-  const me = useQuery(api.viewer.me);
+  const me = useQuery(api.users.me);
+  const ensureUser = useMutation(api.users.ensure);
+  const { isAuthenticated } = useConvexAuth();
+
+  // Create (or refresh) the caller's user row once Convex has their token.
+  useEffect(() => {
+    if (isAuthenticated) void ensureUser();
+  }, [isAuthenticated, ensureUser]);
 
   if (me === undefined) return <p className="text-sm text-zinc-500">Connecting to Convex…</p>;
   return (
     <p className="text-sm text-zinc-500">
-      Convex connected · {me ? `signed in as ${me.name ?? "a user"}` : "not signed in"}
+      Convex connected · {me ? `signed in as ${me.name}${me.isAdmin ? " (admin)" : ""}` : "not signed in"}
     </p>
   );
 }
