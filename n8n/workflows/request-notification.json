@@ -2,15 +2,9 @@
   "id": "LLrequestNotify1",
   "name": "LendLoop – Request notification",
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "errorWorkflow": "LLerrorHandler01"
-  },
-  "pinData": {},
   "nodes": [
     {
-      "id": "6fd734bd-c9ba-448a-a57e-e0de583dc89c",
+      "id": "07295e80-20e7-475f-a5da-0ebb8c9b6576",
       "name": "Convex webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
@@ -29,7 +23,7 @@
       "webhookId": "4f1c0a52-6a7e-4d0b-9b8e-1e6a2c9d3f10"
     },
     {
-      "id": "051851e2-f611-49cc-abf2-d1f174df2d9c",
+      "id": "1b81c16d-f72a-4f3a-a8e3-53e091d39075",
       "name": "Verify signature",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -42,7 +36,7 @@
       }
     },
     {
-      "id": "4abb74ac-c77a-40a3-bcf6-58b978be433e",
+      "id": "4a5a87f0-afbb-4ad4-b751-8bfec08f8030",
       "name": "Signature valid?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
@@ -60,7 +54,7 @@
           },
           "conditions": [
             {
-              "id": "01bf8aa6-5099-488d-8b8f-0f3a407851cb",
+              "id": "b5414690-7e25-4367-a440-df097438147d",
               "leftValue": "={{ $json.valid }}",
               "rightValue": "",
               "operator": {
@@ -76,7 +70,7 @@
       }
     },
     {
-      "id": "995bf8e6-a94c-476a-8070-71916d1b327b",
+      "id": "20a2057e-807e-4e7e-b69c-0bb2a1022721",
       "name": "Reject (401)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -93,7 +87,7 @@
       }
     },
     {
-      "id": "f9187db7-cbcd-4a3e-8d70-1336ab3dcaf1",
+      "id": "2ae1d88c-00a0-4207-9cbb-9c4405aa8f3d",
       "name": "Accept (200)",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -108,7 +102,7 @@
       }
     },
     {
-      "id": "d3295376-39bb-403d-80d3-57fb7153a456",
+      "id": "f5643f09-1014-4f92-8ddd-bbd9dea64266",
       "name": "Compose email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -122,7 +116,7 @@
       }
     },
     {
-      "id": "0deb4f0c-c442-4c78-bff4-f24a98385408",
+      "id": "ba0fa808-e519-46c7-8293-2f5bfa83b690",
       "name": "Send email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
@@ -151,7 +145,7 @@
       }
     },
     {
-      "id": "074ef8d2-9dba-45e2-a328-a868d5fbb1d1",
+      "id": "3c38f4ba-b493-4fd8-9430-123345ec8e33",
       "name": "Sign write-back",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -165,7 +159,7 @@
       }
     },
     {
-      "id": "91ebce4d-4e11-4058-a3e5-6a444b671c85",
+      "id": "7dbcab27-119a-4027-9484-a5f9089fd40b",
       "name": "Record in Convex",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -291,5 +285,12 @@
         ]
       ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "errorWorkflow": "LLerrorHandler01"
+  },
+  "pinData": {},
+  "tags": []
 }

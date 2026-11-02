@@ -2,12 +2,6 @@
   "id": "LLoverdueRemind1",
   "name": "LendLoop – Daily overdue reminders",
   "active": false,
-  "settings": {
-    "executionOrder": "v1",
-    "saveManualExecutions": true,
-    "errorWorkflow": "LLerrorHandler01"
-  },
-  "pinData": {},
   "nodes": [
     {
       "id": "90439b61-9cec-4d6f-ab5c-185c17ab067f",
@@ -288,5 +282,12 @@
         ]
       ]
     }
-  }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "errorWorkflow": "LLerrorHandler01"
+  },
+  "pinData": {},
+  "tags": []
 }
