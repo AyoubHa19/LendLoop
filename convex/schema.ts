@@ -1,17 +1,8 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
+import { CATEGORIES, CONDITIONS } from "./lib/constants";
 
 // Fixed lists keep the data clean and make category filtering an index lookup.
-export const CATEGORIES = [
-  "power-tools",
-  "hand-tools",
-  "garden",
-  "ladders",
-  "cleaning",
-  "other",
-] as const;
-export const CONDITIONS = ["new", "good", "fair", "worn"] as const;
-
 export const category = v.union(...CATEGORIES.map((c) => v.literal(c)));
 export const condition = v.union(...CONDITIONS.map((c) => v.literal(c)));
 

@@ -1,10 +1,17 @@
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Runs before every request so Clerk can read the session. It does not
-// decide who may see or change data: every Convex function checks the
-// caller itself, which is where access control has to live.
+// Only the landing page is public. Every other page sends signed-out
+// visitors to sign in first.
+//
+// This is a convenience for the UI, not the security boundary: every
+// Convex function checks the caller itself, so data stays protected even if
+// someone skips these pages and calls Convex directly.
 // (Next.js 16 calls this file proxy.ts; it used to be middleware.ts.)
-export default clerkMiddleware();
+const isPublicRoute = createRouteMatcher(["/"]);
+
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) await auth.protect();
+});
 
 export const config = {
   matcher: [

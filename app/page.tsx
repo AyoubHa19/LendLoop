@@ -1,56 +1,52 @@
 "use client";
 
-import { Show, SignInButton, UserButton } from "@clerk/nextjs";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { useEffect } from "react";
+import { Show, SignInButton } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import Link from "next/link";
+import { Badge, Button, buttonClass, Empty, Loading } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { CATEGORY_LABELS } from "@/convex/lib/constants";
 
+/** Public landing page: anyone can see what's on offer, but not who owns it. */
 export default function Home() {
+  const tools = useQuery(api.tools.listPublic);
+
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-10 px-6 py-12">
-      <header className="flex items-center justify-between">
-        <span className="text-lg font-semibold">LendLoop</span>
+    <>
+      <section className="flex flex-col items-start gap-4">
+        <h1 className="text-3xl font-semibold tracking-tight">Borrow the drill. Lend the ladder.</h1>
+        <p className="text-zinc-600 dark:text-zinc-400">
+          A tool-lending board for your neighbourhood. Sign in to list your tools or borrow one.
+        </p>
         <Show when="signed-out">
           <SignInButton mode="modal">
-            <button className="rounded-md bg-foreground px-4 py-2 text-sm font-medium text-background">
-              Sign in
-            </button>
+            <Button>Sign in to borrow</Button>
           </SignInButton>
         </Show>
         <Show when="signed-in">
-          <UserButton />
+          <Link href="/tools" className={buttonClass()}>
+            Browse all tools
+          </Link>
         </Show>
-      </header>
-
-      <section className="flex flex-col gap-3">
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Borrow the drill. Lend the ladder.
-        </h1>
-        <p className="text-zinc-600 dark:text-zinc-400">
-          A tool-lending board for your neighbourhood.
-        </p>
       </section>
 
-      {/* Stage 1 check: shows what Convex itself sees about the caller. */}
-      <ConnectionStatus />
-    </div>
-  );
-}
-
-function ConnectionStatus() {
-  const me = useQuery(api.users.me);
-  const ensureUser = useMutation(api.users.ensure);
-  const { isAuthenticated } = useConvexAuth();
-
-  // Create (or refresh) the caller's user row once Convex has their token.
-  useEffect(() => {
-    if (isAuthenticated) void ensureUser();
-  }, [isAuthenticated, ensureUser]);
-
-  if (me === undefined) return <p className="text-sm text-zinc-500">Connecting to Convex…</p>;
-  return (
-    <p className="text-sm text-zinc-500">
-      Convex connected · {me ? `signed in as ${me.name}${me.isAdmin ? " (admin)" : ""}` : "not signed in"}
-    </p>
+      <section className="flex flex-col gap-3">
+        <h2 className="text-lg font-medium">Available on the board</h2>
+        {tools === undefined ? (
+          <Loading />
+        ) : tools.length === 0 ? (
+          <Empty>No tools listed yet.</Empty>
+        ) : (
+          <ul className="divide-y divide-zinc-200 rounded-lg border border-zinc-200 dark:divide-zinc-800 dark:border-zinc-800">
+            {tools.map((t) => (
+              <li key={t._id} className="flex items-center justify-between px-4 py-3">
+                <span>{t.name}</span>
+                <Badge>{CATEGORY_LABELS[t.category]}</Badge>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </>
   );
 }

@@ -10,6 +10,7 @@
 
 import type * as admin from "../admin.js";
 import type * as lib_auth from "../lib/auth.js";
+import type * as lib_constants from "../lib/constants.js";
 import type * as lib_requests from "../lib/requests.js";
 import type * as requests from "../requests.js";
 import type * as tools from "../tools.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   "lib/auth": typeof lib_auth;
+  "lib/constants": typeof lib_constants;
   "lib/requests": typeof lib_requests;
   requests: typeof requests;
   tools: typeof tools;
