@@ -4,47 +4,45 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * Design tokens. One graphite ramp for every surface and text role, and one
- * accent (tape-measure yellow) used only as a fill with dark text on it:
- * the logo mark and the selected filter. Everything else stays neutral so
- * the tools themselves are what you look at.
+ * Design tokens. Monochrome, like the ink drawing in the logo: one graphite
+ * ramp for every surface and text role, matte black by default and paper
+ * white in light mode. Colour is kept for meaning only (status dots).
  */
 :root {
   --bg: #fafafa;
   --surface: #ffffff;
-  --raised: #f4f4f5;
-  --fg: #171717;
-  --fg-2: #525252;
-  --fg-3: #737373;
-  --line: rgb(23 23 23 / 0.08);
-  --line-strong: rgb(23 23 23 / 0.16);
-  --primary: #171717;
+  --raised: #f2f2f3;
+  --fg: #141414;
+  --fg-2: #4f4f52;
+  --fg-3: #737378;
+  --line: rgb(20 20 20 / 0.08);
+  --line-strong: rgb(20 20 20 / 0.16);
+  --primary: #141414;
   --on-primary: #ffffff;
-  --accent: #f2c230;
-  --on-accent: #171717;
   --positive: #16a34a;
   --warning: #b45309;
   --negative: #dc2626;
   --shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+  /* The logo is black ink; flip it to white on dark backgrounds. */
+  --ink-filter: none;
 }
 
 .dark {
-  --bg: #141415;
-  --surface: #19191b;
-  --raised: #232325;
+  --bg: #0b0b0c;
+  --surface: #121213;
+  --raised: #1b1b1d;
   --fg: #ededed;
   --fg-2: #a1a1a6;
-  --fg-3: #85858b;
+  --fg-3: #7c7c82;
   --line: rgb(237 237 237 / 0.08);
-  --line-strong: rgb(237 237 237 / 0.16);
+  --line-strong: rgb(237 237 237 / 0.14);
   --primary: #ededed;
-  --on-primary: #141415;
-  --accent: #f2c230;
-  --on-accent: #171717;
+  --on-primary: #0b0b0c;
   --positive: #4cc38a;
   --warning: #e0a53a;
   --negative: #e5484d;
   --shadow: none;
+  --ink-filter: invert(1);
 }
 
 @theme inline {
@@ -58,14 +56,13 @@
   --color-line-strong: var(--line-strong);
   --color-primary: var(--primary);
   --color-on-primary: var(--on-primary);
-  --color-accent: var(--accent);
-  --color-on-accent: var(--on-accent);
   --color-positive: var(--positive);
   --color-warning: var(--warning);
   --color-negative: var(--negative);
   --shadow-card: var(--shadow);
   --font-sans: var(--font-instrument-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-bricolage);
   --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -73,6 +70,25 @@ body {
   background: var(--bg);
   color: var(--fg);
   font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* The logo drawing, in the ink colour of the current theme. */
+.ink {
+  filter: var(--ink-filter);
+}
+
+/* Scroll reveal: content fades and rises once as it enters the viewport. */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 500ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal][data-visible] {
+  opacity: 1;
+  transform: none;
 }
 
 /* Visible keyboard focus everywhere, in the text colour of the theme. */
@@ -90,6 +106,10 @@ input[type="date"] {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    opacity: 1;
+    transform: none;
+  }
   *,
   *::before,
   *::after {

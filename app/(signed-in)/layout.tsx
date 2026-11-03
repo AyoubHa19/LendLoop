@@ -14,11 +14,11 @@ import type { ReactNode } from "react";
  */
 export default function SignedInLayout({ children }: { children: ReactNode }) {
   return (
-    <>
+    <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10 sm:px-8">
       {children}
       <Show when="signed-out">
         <RedirectToSignIn />
       </Show>
-    </>
+    </div>
   );
 }

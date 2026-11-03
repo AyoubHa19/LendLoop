@@ -1,12 +1,18 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { ThemeProvider } from "next-themes";
-import { Geist_Mono, Instrument_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono, Instrument_Sans } from "next/font/google";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-// A friendly, practical sans for the interface; a mono for dates and counts.
+// Bricolage Grotesque for headlines, Instrument Sans for the interface,
+// Geist Mono for dates and counts.
+const bricolage = Bricolage_Grotesque({
+  variable: "--font-bricolage",
+  subsets: ["latin"],
+});
+
 const instrumentSans = Instrument_Sans({
   variable: "--font-instrument-sans",
   subsets: ["latin"],
@@ -48,18 +54,16 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bricolage.variable} ${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem disableTransitionOnChange>
           {/* Clerk knows who is signed in; Convex, inside it, sends that
               session's token with every request. */}
           <ClerkProvider appearance={clerkAppearance}>
             <ConvexClientProvider>
               <SiteHeader />
-              <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10 sm:px-8">
-                {children}
-              </main>
+              <main className="flex flex-1 flex-col">{children}</main>
             </ConvexClientProvider>
           </ClerkProvider>
         </ThemeProvider>

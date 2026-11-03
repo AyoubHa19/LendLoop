@@ -62,7 +62,7 @@ export function PageHeader({
   return (
     <div className="flex flex-wrap items-end justify-between gap-4">
       <div className="flex flex-col gap-1">
-        <h1 className="text-[28px] font-medium leading-tight tracking-[-0.01em]">{title}</h1>
+        <h1 className="font-display text-[32px] font-medium leading-tight tracking-[-0.02em]">{title}</h1>
         {description && <p className="text-[15px] text-fg-2">{description}</p>}
       </div>
       {action}

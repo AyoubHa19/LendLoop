@@ -31,18 +31,17 @@ export function timeAgo(ms: number, now = Date.now()) {
 
 /**
  * A loan's dates, short: "4–7 Nov", "30 Nov – 2 Dec", "28 Dec 2026 – 3 Jan 2027".
- * The year appears only when it isn't the current one or the range crosses it.
+ * Loans last at most 30 days, so the year is shown only when a range crosses
+ * one. Pure: it never reads the clock, so prerendered pages stay stable.
  */
 export function formatRange(start: string, end: string) {
   const [sy, sm, sd] = start.split("-").map(Number);
   const [ey, em, ed] = end.split("-").map(Number);
   const month = (m: number) =>
     new Date(Date.UTC(2000, m - 1, 1)).toLocaleDateString("en-GB", { month: "short", timeZone: "UTC" });
-  const thisYear = new Date().getUTCFullYear();
-  const withYear = sy !== ey || sy !== thisYear;
-  const y = (year: number) => (withYear ? ` ${year}` : "");
 
-  if (start === end) return `${sd} ${month(sm)}${y(sy)}`;
-  if (sy === ey && sm === em) return `${sd}–${ed} ${month(sm)}${y(sy)}`;
-  return `${sd} ${month(sm)}${y(sy)} – ${ed} ${month(em)}${y(ey)}`;
+  if (sy !== ey) return `${sd} ${month(sm)} ${sy} – ${ed} ${month(em)} ${ey}`;
+  if (start === end) return `${sd} ${month(sm)}`;
+  if (sm === em) return `${sd}–${ed} ${month(sm)}`;
+  return `${sd} ${month(sm)} – ${ed} ${month(em)}`;
 }

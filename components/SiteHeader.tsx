@@ -2,13 +2,21 @@
 
 import { Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { useConvexAuth, useMutation, useQuery } from "convex/react";
-import { Menu, Tag, X } from "lucide-react";
+import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { api } from "@/convex/_generated/api";
 import { ThemeToggle } from "./ThemeToggle";
 import { buttonClass } from "./ui";
+
+// Sections of the landing page, for visitors who aren't signed in yet.
+const LANDING_LINKS = [
+  { href: "/#how-it-works", label: "How it works" },
+  { href: "/#reminders", label: "Reminders" },
+  { href: "/#privacy", label: "Privacy" },
+];
 
 const LINKS = [
   { href: "/tools", label: "All tools" },
@@ -38,10 +46,8 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-line bg-bg/90 backdrop-blur-sm">
       <div className="mx-auto flex h-14 w-full max-w-6xl items-center gap-6 px-6 sm:px-8">
-        <Link href="/" className="flex items-center gap-2 text-[17px] font-semibold tracking-[-0.01em]">
-          <span className="inline-flex size-6 items-center justify-center rounded-md bg-accent text-on-accent">
-            <Tag size={14} strokeWidth={2} aria-hidden />
-          </span>
+        <Link href="/" className="flex items-center gap-2 font-display text-[18px] font-medium tracking-[-0.02em]">
+          <Image src="/loop-mark.png" alt="" width={24} height={24} className="ink size-6" priority />
           LendLoop
         </Link>
 
@@ -55,7 +61,13 @@ export function SiteHeader() {
           </nav>
         </Show>
         <Show when="signed-out">
-          <div className="flex-1" />
+          <nav className="hidden flex-1 items-center gap-1 md:flex" aria-label="Sections">
+            {LANDING_LINKS.map((l) => (
+              <a key={l.href} href={l.href} className={linkClass(l.href)}>
+                {l.label}
+              </a>
+            ))}
+          </nav>
         </Show>
 
         <div className="ml-auto flex items-center gap-2">

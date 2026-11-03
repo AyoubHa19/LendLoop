@@ -106,7 +106,7 @@ function FilterChip({
       aria-pressed={active}
       className={`inline-flex h-8 items-center rounded-lg px-3 text-[13px] transition-colors duration-150 ease-out ${
         active
-          ? "bg-accent font-medium text-on-accent"
+          ? "bg-primary font-medium text-on-primary"
           : "border border-line text-fg-2 hover:bg-raised hover:text-fg"
       }`}
     >
