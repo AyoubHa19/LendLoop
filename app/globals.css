@@ -1,26 +1,99 @@
 @import "tailwindcss";
 
+/* Dark mode follows the "dark" class that next-themes puts on <html>. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Design tokens. One graphite ramp for every surface and text role, and one
+ * accent (tape-measure yellow) used only as a fill with dark text on it:
+ * the logo mark and the selected filter. Everything else stays neutral so
+ * the tools themselves are what you look at.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --raised: #f4f4f5;
+  --fg: #171717;
+  --fg-2: #525252;
+  --fg-3: #737373;
+  --line: rgb(23 23 23 / 0.08);
+  --line-strong: rgb(23 23 23 / 0.16);
+  --primary: #171717;
+  --on-primary: #ffffff;
+  --accent: #f2c230;
+  --on-accent: #171717;
+  --positive: #16a34a;
+  --warning: #b45309;
+  --negative: #dc2626;
+  --shadow: 0 1px 2px rgb(0 0 0 / 0.05);
+}
+
+.dark {
+  --bg: #141415;
+  --surface: #19191b;
+  --raised: #232325;
+  --fg: #ededed;
+  --fg-2: #a1a1a6;
+  --fg-3: #85858b;
+  --line: rgb(237 237 237 / 0.08);
+  --line-strong: rgb(237 237 237 / 0.16);
+  --primary: #ededed;
+  --on-primary: #141415;
+  --accent: #f2c230;
+  --on-accent: #171717;
+  --positive: #4cc38a;
+  --warning: #e0a53a;
+  --negative: #e5484d;
+  --shadow: none;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-fg: var(--fg);
+  --color-fg-2: var(--fg-2);
+  --color-fg-3: var(--fg-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-primary: var(--primary);
+  --color-on-primary: var(--on-primary);
+  --color-accent: var(--accent);
+  --color-on-accent: var(--on-accent);
+  --color-positive: var(--positive);
+  --color-warning: var(--warning);
+  --color-negative: var(--negative);
+  --shadow-card: var(--shadow);
+  --font-sans: var(--font-instrument-sans);
   --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
+
+/* Visible keyboard focus everywhere, in the text colour of the theme. */
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
+/* Native date pickers follow the theme. */
+input[type="date"] {
+  color-scheme: light;
+}
+.dark input[type="date"] {
+  color-scheme: dark;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
 }

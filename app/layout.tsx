@@ -1,12 +1,14 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { ThemeProvider } from "next-themes";
+import { Geist_Mono, Instrument_Sans } from "next/font/google";
 import { ConvexClientProvider } from "@/components/ConvexClientProvider";
 import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// A friendly, practical sans for the interface; a mono for dates and counts.
+const instrumentSans = Instrument_Sans({
+  variable: "--font-instrument-sans",
   subsets: ["latin"],
 });
 
@@ -20,23 +22,47 @@ export const metadata: Metadata = {
   description: "Borrow and lend tools with your neighbours.",
 };
 
+// Clerk's sign-in modal and user menu use the same tokens as the app, so
+// they switch with light/dark mode instead of staying white.
+const clerkAppearance = {
+  variables: {
+    colorPrimary: "var(--primary)",
+    colorPrimaryForeground: "var(--on-primary)",
+    colorForeground: "var(--fg)",
+    colorMutedForeground: "var(--fg-2)",
+    colorMuted: "var(--raised)",
+    colorBackground: "var(--surface)",
+    colorInput: "var(--surface)",
+    colorInputForeground: "var(--fg)",
+    colorBorder: "var(--line-strong)",
+    colorRing: "var(--fg)",
+    colorDanger: "var(--negative)",
+    fontFamily: "var(--font-instrument-sans)",
+    borderRadius: "0.5rem",
+  },
+};
+
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
+    // next-themes sets the theme class before React loads, hence the warning opt-out.
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
+      className={`${instrumentSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
-        {/* Clerk knows who is signed in; Convex, inside it, sends that
-            session's token with every request. */}
-        <ClerkProvider>
-          <ConvexClientProvider>
-            <SiteHeader />
-            <main className="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-8 px-6 py-10">
-              {children}
-            </main>
-          </ConvexClientProvider>
-        </ClerkProvider>
+      <body className="flex min-h-full flex-col">
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+          {/* Clerk knows who is signed in; Convex, inside it, sends that
+              session's token with every request. */}
+          <ClerkProvider appearance={clerkAppearance}>
+            <ConvexClientProvider>
+              <SiteHeader />
+              <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-8 px-6 py-10 sm:px-8">
+                {children}
+              </main>
+            </ConvexClientProvider>
+          </ClerkProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

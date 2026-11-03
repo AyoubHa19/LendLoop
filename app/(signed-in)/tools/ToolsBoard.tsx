@@ -1,19 +1,23 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useMutation } from "convex/react";
 import type { FunctionReturnType } from "convex/server";
+import { Search, ShieldCheck } from "lucide-react";
 import { useState, type FormEvent, type ReactNode } from "react";
+import { CategoryIcon } from "@/components/CategoryIcon";
 import {
-  Badge,
   Button,
   Card,
   Empty,
   ErrorText,
   inputClass,
+  labelClass,
   Loading,
   PageHeader,
+  Status,
 } from "@/components/ui";
 import { api } from "@/convex/_generated/api";
+import { useSignedInQuery } from "@/lib/useSignedInQuery";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
   CATEGORIES,
@@ -24,33 +28,61 @@ import {
 import { todayUtc } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
 
+type Tool = FunctionReturnType<typeof api.tools.list>[number];
+
 export function ToolsBoard() {
   const [category, setCategory] = useState<Category | undefined>(undefined);
-  const tools = useQuery(api.tools.list, { category });
-  const me = useQuery(api.users.me);
+  const [search, setSearch] = useState("");
+  const tools = useSignedInQuery(api.tools.list, { category });
+  const me = useSignedInQuery(api.users.me, {});
+
+  // Name search runs on the list Convex already returned (at most 200 tools,
+  // all of which the caller may see), so it needs no extra backend call.
+  const term = search.trim().toLowerCase();
+  const visible = tools?.filter((t) => t.name.toLowerCase().includes(term));
 
   return (
     <>
-      <PageHeader title="All tools" description="Everything your neighbours are lending." />
+      <PageHeader title="All tools" description="Everything your neighbours are lending right now" />
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
-        <FilterChip active={category === undefined} onClick={() => setCategory(undefined)}>
-          All
-        </FilterChip>
-        {CATEGORIES.map((c) => (
-          <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>
-            {CATEGORY_LABELS[c]}
+      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <label className="relative md:w-72">
+          <span className="sr-only">Search tools by name</span>
+          <Search
+            size={16}
+            strokeWidth={1.5}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-3"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search"
+            className={`${inputClass} pl-9`}
+          />
+        </label>
+        <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by category">
+          <FilterChip active={category === undefined} onClick={() => setCategory(undefined)}>
+            All
           </FilterChip>
-        ))}
+          {CATEGORIES.map((c) => (
+            <FilterChip key={c} active={category === c} onClick={() => setCategory(c)}>
+              {CATEGORY_LABELS[c]}
+            </FilterChip>
+          ))}
+        </div>
       </div>
 
-      {tools === undefined ? (
+      {visible === undefined ? (
         <Loading />
-      ) : tools.length === 0 ? (
-        <Empty>No tools in this category yet.</Empty>
+      ) : visible.length === 0 ? (
+        <Empty title={term ? `No tools match “${search.trim()}”` : "No tools in this category yet"}>
+          {term ? "Try a shorter name, or another category." : "Lend one of yours from My listings."}
+        </Empty>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {tools.map((tool) => (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {visible.map((tool) => (
             <ToolCard key={tool._id} tool={tool} isAdmin={me?.isAdmin ?? false} />
           ))}
         </div>
@@ -72,18 +104,16 @@ function FilterChip({
     <button
       onClick={onClick}
       aria-pressed={active}
-      className={`rounded-full border px-3 py-1 text-sm ${
+      className={`inline-flex h-8 items-center rounded-lg px-3 text-[13px] transition-colors duration-150 ease-out ${
         active
-          ? "border-foreground bg-foreground text-background"
-          : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-900"
+          ? "bg-accent font-medium text-on-accent"
+          : "border border-line text-fg-2 hover:bg-raised hover:text-fg"
       }`}
     >
       {children}
     </button>
   );
 }
-
-type Tool = FunctionReturnType<typeof api.tools.list>[number];
 
 function ToolCard({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
   const [requesting, setRequesting] = useState(false);
@@ -101,21 +131,32 @@ function ToolCard({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
   }
 
   return (
-    <Card>
-      <div className="flex flex-col gap-3">
-        <div className="flex items-start justify-between gap-2">
-          <h2 className="font-medium">{tool.name}</h2>
-          {tool.available ? <Badge tone="green">Available</Badge> : <Badge tone="blue">On loan</Badge>}
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-start gap-3">
+        <CategoryIcon category={tool.category} />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+          <h2 className="truncate text-[15px] font-medium">{tool.name}</h2>
+          <p className="text-[13px] text-fg-3">
+            {CATEGORY_LABELS[tool.category]}, {CONDITION_LABELS[tool.condition].toLowerCase()} condition
+          </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          <Badge>{CATEGORY_LABELS[tool.category]}</Badge>
-          <Badge>Condition: {CONDITION_LABELS[tool.condition]}</Badge>
+      </div>
+
+      <p className="line-clamp-3 text-sm leading-5 text-fg-2">{tool.description}</p>
+
+      <div className="mt-auto flex flex-col gap-3 border-t border-line pt-4">
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-1.5 text-[13px] text-fg-2">
+            <span className="truncate">{tool.isMine ? "Your tool" : tool.ownerName}</span>
+            {tool.ownerTrusted && (
+              <span className="inline-flex items-center gap-1 text-fg-2" title="Trusted Lender">
+                <ShieldCheck size={14} strokeWidth={1.5} aria-hidden />
+                <span className="sr-only sm:not-sr-only">Trusted</span>
+              </span>
+            )}
+          </span>
+          {tool.available ? <Status tone="positive">Available</Status> : <Status tone="neutral">On loan</Status>}
         </div>
-        <p className="text-sm text-zinc-600 dark:text-zinc-400">{tool.description}</p>
-        <p className="flex items-center gap-2 text-sm">
-          Lent by {tool.isMine ? "you" : tool.ownerName}
-          {tool.ownerTrusted && <Badge tone="blue">Trusted Lender</Badge>}
-        </p>
 
         {!tool.isMine &&
           (requesting ? (
@@ -127,7 +168,7 @@ function ToolCard({ tool, isAdmin }: { tool: Tool; isAdmin: boolean }) {
           ))}
         {isAdmin && (
           <Button variant="danger" onClick={onRemove}>
-            Remove listing (admin)
+            Remove listing
           </Button>
         )}
         <ErrorText>{error}</ErrorText>
@@ -160,31 +201,27 @@ function RequestForm({ toolId, onDone }: { toolId: Id<"tools">; onDone: () => vo
   }
 
   if (sent) {
-    return (
-      <p className="text-sm text-emerald-700 dark:text-emerald-400">
-        Request sent. Track it under My requests.
-      </p>
-    );
+    return <p className="text-sm text-positive">Request sent. You can follow it in My requests.</p>;
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex flex-col gap-2">
+    <form onSubmit={onSubmit} className="flex flex-col gap-3">
       <div className="grid grid-cols-2 gap-2">
-        <label className="flex flex-col gap-1 text-sm">
+        <label className={labelClass}>
           From
           <input type="date" required min={today} value={startDate} onChange={(e) => setStartDate(e.target.value)} className={inputClass} />
         </label>
-        <label className="flex flex-col gap-1 text-sm">
-          To
+        <label className={labelClass}>
+          Until
           <input type="date" required min={startDate} value={endDate} onChange={(e) => setEndDate(e.target.value)} className={inputClass} />
         </label>
       </div>
       <ErrorText>{error}</ErrorText>
       <div className="flex gap-2">
-        <Button type="submit" disabled={busy}>
-          {busy ? "Sending…" : "Send request"}
+        <Button type="submit" disabled={busy} className="flex-1">
+          {busy ? "Sending" : "Send request"}
         </Button>
-        <Button type="button" variant="secondary" onClick={onDone}>
+        <Button type="button" variant="ghost" onClick={onDone}>
           Cancel
         </Button>
       </div>

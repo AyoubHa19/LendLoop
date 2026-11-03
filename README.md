@@ -34,7 +34,7 @@ Built for the Fluence International Full-Stack Developer take-home.
 | List tools (name, category, condition, description) | `app/(signed-in)/listings` |
 | Request a tool for a date range | `app/(signed-in)/tools` → `requests.create` |
 | Approve / decline requests on your own tools, mark loans returned | `app/(signed-in)/incoming` |
-| All tools with availability, filterable by category | `app/(signed-in)/tools` |
+| All tools with availability, filterable by category (plus search by name) | `app/(signed-in)/tools` |
 | My listings · My requests · Incoming requests | `app/(signed-in)/…` |
 | Admin: remove any listing, view all loans, mark a Trusted Lender | `app/(signed-in)/admin`, `convex/admin.ts`, `tools.remove` |
 | Access control enforced **in Convex functions** | `convex/lib/auth.ts` + every function |
@@ -44,7 +44,8 @@ Built for the Fluence International Full-Stack Developer take-home.
 | Secrets out of code and out of exported workflows | `n8n/.env` (git-ignored), Convex env vars |
 | Idempotent write-backs | `automation.recordEvent` (`idempotencyKey`) |
 | Retries + error workflow, failures visible | Convex backoff, n8n node retries, `n8n/workflows/error-handler.json`, admin page |
-| **Bonus:** recent automation activity on each loan | `requests.describe` → "Overdue reminder emailed · 2 days ago" |
+| **Bonus:** recent automation activity on each loan | `requests.describe` → "Overdue reminder emailed, 2 days ago" |
+| Light and dark mode (follows the system, with a toggle) | `app/globals.css` tokens, `next-themes` |
 
 ## Architecture
 
@@ -411,6 +412,8 @@ re-running reminders → no duplicate).
 - Store a timezone per user instead of computing "today" in UTC.
 - Treat a loan as "on loan" only between its start and end date (today an approved
   future loan already shows the tool as unavailable).
+- Search runs in the browser over the (at most 200) tools already loaded. With a
+  larger board it would move to a Convex search index with pagination.
 - Pagination for long lists, monitoring and alerting on the error workflow (not just
   an email), and CI running `tsc`, `eslint`, `npm test` and `next build` on every PR.
 
@@ -428,4 +431,6 @@ re-running reminders → no duplicate).
 ---
 
 Built with AI pair-programming (Claude Code). I reviewed every change and can walk
-through any part of the code and the design decisions.
+through any part of the code and the design decisions. The visual pass followed the
+[unslop](https://github.com/heydamir/unslop) skill by Damir Sokolovsky (CC BY 4.0) and
+Anthropic's [frontend-design](https://github.com/anthropics/skills) skill.

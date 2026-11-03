@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { formatDate, timeAgo } from "@/lib/dates";
+import { timeAgo } from "@/lib/dates";
 import { errorMessage } from "@/lib/errors";
+import { DateSlip } from "./DateSlip";
 import { StatusBadge } from "./StatusBadge";
-import { Button, Card, Empty, ErrorText, Loading } from "./ui";
+import { Button, type ButtonVariant, Empty, ErrorText, Loading } from "./ui";
 
 export type LoanRow = {
   _id: string;
@@ -18,8 +19,8 @@ export type LoanRow = {
 };
 
 /**
- * A list of requests/loans. `who` picks which person to show (the other
- * side of the loan), and `actions` adds the buttons the viewer may use.
+ * A list of requests/loans. `who` names the other side of the loan, and
+ * `actions` adds the buttons the viewer is allowed to use.
  */
 export function LoanList<T extends LoanRow>({
   rows,
@@ -29,36 +30,39 @@ export function LoanList<T extends LoanRow>({
 }: {
   rows: T[] | undefined;
   who: (row: T) => string;
-  empty: string;
+  empty: { title: string; hint?: string };
   actions?: (row: T) => ReactNode;
 }) {
   if (rows === undefined) return <Loading />;
-  if (rows.length === 0) return <Empty>{empty}</Empty>;
+  if (rows.length === 0) return <Empty title={empty.title}>{empty.hint}</Empty>;
 
   return (
-    <div className="flex flex-col gap-3">
+    <ul className="divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-card">
       {rows.map((row) => (
-        <Card key={row._id}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
-                <span className="font-medium">{row.toolName}</span>
-                <StatusBadge loan={row} />
-              </div>
-              <span className="text-sm text-zinc-600 dark:text-zinc-400">
-                {who(row)} · {formatDate(row.startDate)} – {formatDate(row.endDate)}
-              </span>
-              {row.activity?.map((a) => (
-                <span key={`${a.kind}-${a.at}`} className="text-xs text-zinc-500">
-                  {a.message} · {timeAgo(a.at)}
-                </span>
-              ))}
+        <li key={row._id} className="flex flex-col gap-3 p-5 md:flex-row md:items-center md:gap-6">
+          <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="truncate text-[15px] font-medium">{row.toolName}</span>
+              <DateSlip start={row.startDate} end={row.endDate} />
             </div>
-            {actions && <div className="flex gap-2">{actions(row)}</div>}
+            <span className="text-[13px] text-fg-2">{who(row)}</span>
+            {row.activity && row.activity.length > 0 && (
+              <ul className="flex flex-col gap-0.5">
+                {row.activity.map((a) => (
+                  <li key={`${a.kind}-${a.at}`} className="text-xs text-fg-3">
+                    {a.message}, {timeAgo(a.at)}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
-        </Card>
+          <div className="md:w-36">
+            <StatusBadge loan={row} />
+          </div>
+          {actions && <div className="flex flex-wrap gap-2 md:w-56 md:justify-end">{actions(row)}</div>}
+        </li>
       ))}
-    </div>
+    </ul>
   );
 }
 
@@ -70,7 +74,7 @@ export function ActionButton({
 }: {
   label: string;
   run: () => Promise<unknown>;
-  variant?: "primary" | "secondary" | "danger";
+  variant?: ButtonVariant;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
